@@ -18,8 +18,18 @@ if exist python\python.exe (
     goto end
 )
 
-:: 最后备用：系统 Python
-python src\gui.py
+:: 最后备用：系统 Python（解析绝对路径后再执行）
+set "SYS_PY="
+for /f "delims=" %%I in ('where python 2^>nul') do (
+    set "SYS_PY=%%I"
+    goto run_sys_python
+)
+
+echo [ERROR] 未找到可用的 Python 解释器。
+goto end
+
+:run_sys_python
+"%SYS_PY%" src\gui.py
 
 :end
 pause

@@ -6,6 +6,21 @@ from openpyxl.utils import get_column_letter
 import time
 from pathlib import Path
 
+
+def _sanitize_for_spreadsheet(value):
+    """Neutralize potential spreadsheet formulas when exporting untrusted text."""
+    if isinstance(value, str) and value and value[0] in ('=', '+', '-', '@'):
+        return "'" + value
+    return value
+
+
+def _sanitize_dataframe_for_spreadsheet(df):
+    """Sanitize object/string columns to avoid formula execution in spreadsheet apps."""
+    text_cols = df.select_dtypes(include=['object', 'string']).columns
+    for col in text_cols:
+        df[col] = df[col].map(_sanitize_for_spreadsheet)
+    return df
+
 class ExcelTool:
     @staticmethod
     def read_excel_to_list(file_path, sheet_name=None):
@@ -39,6 +54,7 @@ class ExcelTool:
         """
         # 将字典数组转换为 DataFrame
         df = pd.DataFrame(data)
+        df = _sanitize_dataframe_for_spreadsheet(df)
         df = df.fillna('')
         # 将 DataFrame 保存到 Excel 文件
         df.to_excel(filename, index=False)
@@ -48,6 +64,7 @@ class ExcelTool:
     def save_list_to_excel(data, file_path):
         # 将数据转换为DataFrame
         df = pd.DataFrame(data)
+        df = _sanitize_dataframe_for_spreadsheet(df)
         
         # 将DataFrame写入Excel文件
         with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
@@ -76,6 +93,7 @@ class ExcelTool:
         try:
             # 将字典列表转换为DataFrame
             new_df = pd.DataFrame(dict_list)
+            new_df = _sanitize_dataframe_for_spreadsheet(new_df)
             ensure_parent_dir_exists(file_name)
             
             # 检查文件是否可写，如果不可写则等待5秒后重试
@@ -92,10 +110,13 @@ class ExcelTool:
             # 如果文件已存在，先读取现有数据
             if os.path.exists(file_name):
                 existing_df = pd.read_excel(file_name)
+                existing_df = _sanitize_dataframe_for_spreadsheet(existing_df)
                 # 合并数据，根据'id'列判断是否重复
                 combined_df = pd.concat([existing_df, new_df]).drop_duplicates(subset=key_column, keep='last')
             else:
                 combined_df = new_df
+
+            combined_df = _sanitize_dataframe_for_spreadsheet(combined_df)
             
             # 将合并后的DataFrame保存到Excel文件
             combined_df.to_excel(file_name, index=False)

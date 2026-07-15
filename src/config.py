@@ -35,3 +35,5 @@ countries_and_cities = [
     "跨国婚姻",
     "英区不养闲人"
 ]
+
+max_count = 10  # 最多爬取多少个新用户，0 表示不限

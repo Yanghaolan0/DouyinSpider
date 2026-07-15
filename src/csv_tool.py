@@ -2,6 +2,13 @@ import os
 import csv
 from collections import OrderedDict
 
+
+def _sanitize_for_spreadsheet(value):
+    """Neutralize potential spreadsheet formulas when exporting untrusted text."""
+    if isinstance(value, str) and value and value[0] in ('=', '+', '-', '@'):
+        return "'" + value
+    return value
+
 class CsvTool:
     @staticmethod
     def read_csv_with_dict(file_path):
@@ -48,12 +55,16 @@ class CsvTool:
                     else:
                         rows.append(item)
                 data = rows
+
+        safe_data = []
+        for row in data:
+            safe_data.append({k: _sanitize_for_spreadsheet(v) for k, v in row.items()})
         
-        fieldnames = data[0].keys() if data else []
+        fieldnames = safe_data[0].keys() if safe_data else []
         with open(file_path, mode='w', newline='', encoding='utf-8') as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
-            writer.writerows(data)
+            writer.writerows(safe_data)
         
         print(f"Written to {file_path}")
 
@@ -62,12 +73,16 @@ class CsvTool:
         if os.path.dirname(file_path):
             if not os.path.exists(os.path.dirname(file_path)):
                 os.makedirs(os.path.dirname(file_path))
+
+        safe_data = []
+        for row in data:
+            safe_data.append({k: _sanitize_for_spreadsheet(v) for k, v in row.items()})
         
-        fieldnames = data[0].keys() if data else []
+        fieldnames = safe_data[0].keys() if safe_data else []
         with open(file_path, mode='a', newline='', encoding='utf-8') as file:
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             if file.tell() == 0:  # Check if the file is empty
                 writer.writeheader()
-            writer.writerows(data)
+            writer.writerows(safe_data)
         
         print(f"Written to {file_path}")

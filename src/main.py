@@ -253,7 +253,7 @@ def run_keywords(keywords: list, csv_path: str,
 def start():
     keywords = config.countries_and_cities
     csv_path = make_csv_path(keywords)
-    run_keywords(keywords, csv_path)
+    run_keywords(keywords, csv_path, max_count=config.max_count)
 
 
 if __name__ == "__main__":
